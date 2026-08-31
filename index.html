@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Google Maps - Vệ Tinh</title>
+    <!-- Google Maps API - sử dụng key demo, bạn nên thay bằng key của mình -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6j4mFdblLZ9pJhn08iP2jKZ2nMdW0oa0&callback=initMap&libraries=places&v=weekly" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        .app-container {
+            max-width: 480px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 6px 12px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            position: relative;
+        }
+        /* Header */
+        .app-header {
+            padding: 18px 18px 10px 18px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .app-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .app-header h1 .badge {
+            background: #1a73e8;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .header-actions button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #444;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .header-actions button:hover {
+            background: #f0f4fa;
+        }
+        /* Thanh tìm kiếm + chế độ xem */
+        .search-section {
+            padding: 10px 16px 8px 16px;
+            background: #ffffff;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .search-section input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1.5px solid #dfe3e8;
+            border-radius: 30px;
+            font-size: 15px;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .search-section input:focus {
+            border-color: #1a73e8;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
+        .search-section input::placeholder {
+            color: #8a939b;
+        }
+        .map-type-toggle {
+            display: flex;
+            gap: 4px;
+            background: #f1f4f8;
+            padding: 4px;
+            border-radius: 30px;
+            flex-shrink: 0;
+        }
+        .map-type-toggle button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            background: transparent;
+            color: #5f6b7a;
+        }
+        .map-type-toggle button.active {
+            background: #1a73e8;
+            color: white;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
+        }
+        .map-type-toggle button:not(.active):hover {
+            background: #e5e9ed;
+        }
+        /* Map container */
+        #map {
+            width: 100%;
+            height: 50vh;
+            min-height: 340px;
+            background: #e5e9ed;
+            margin: 2px 0 0 0;
+        }
+        /* Thẻ thông tin */
+        .info-card {
+            padding: 12px 18px 14px 18px;
+            background: #ffffff;
+            border-top: 1px solid #eef2f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .info-card .location-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #1e2a3a;
+            font-weight: 500;
+        }
+        .info-card .location-label .dot {
+            width: 10px;
+            height: 10px;
+            background: #ea4335;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+        .info-card .coords {
+            font-size: 13px;
+            color: #5f6b7a;
+            background: #f2f4f7;
+            padding: 5px 14px;
+            border-radius: 40px;
+            font-weight: 450;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            padding: 4px 16px 14px 16px;
+            background: #ffffff;
+            border-top: 1px solid #f0f3f7;
+        }
+        .action-buttons button {
+            flex: 1;
+            padding: 11px 8px;
+            border: none;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 14px;
+            background: #f1f4f8;
+            color: #1a2634;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: 0.15s;
+            cursor: pointer;
+        }
+        .action-buttons button:active {
+            transform: scale(0.96);
+        }
+        .action-buttons .btn-primary {
+            background: #1a73e8;
+            color: white;
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
+        }
+        .action-buttons .btn-primary:active {
+            background: #1557b0;
+        }
+        .action-buttons .btn-outline {
+            background: transparent;
+            border: 1.5px solid #d4dce6;
+        }
+        .footer-note {
+            padding: 6px 20px 14px 20px;
+            font-size: 12px;
+            color: #7a8794;
+            text-align: center;
+            background: #ffffff;
+            border-top: 1px solid #f0f3f7;
+        }
+        .footer-note a {
+            color: #1a73e8;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .footer-note a:hover {
+            text-decoration: underline;
+        }
+        /* Responsive */
+        @media (max-width: 480px) {
+            .app-container {
+                border-radius: 20px;
+            }
+            #map {
+                min-height: 280px;
+                height: 42vh;
+            }
+            .search-section {
+                flex-wrap: wrap;
+            }
+            .map-type-toggle {
+                width: 100%;
+                justify-content: center;
+            }
+            .map-type-toggle button {
+                flex: 1;
+                text-align: center;
+                padding: 8px 6px;
+                font-size: 12px;
+            }
+            .info-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        /* Loading fallback */
+        .map-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: #f0f2f5;
+            color: #3c4043;
+            flex-direction: column;
+            padding: 20px;
+            text-align: center;
+        }
+        .map-loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e9ed;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <h1>
+                🌍 Maps
+                <span class="badge">GPS</span>
+            </h1>
+            <div class="header-actions">
+                <button id="zoomInBtn" title="Phóng to">➕</button>
+                <button id="zoomOutBtn" title="Thu nhỏ">➖</button>
+                <button id="refreshBtn" title="Vị trí hiện tại">📍</button>
+            </div>
+        </div>
+
+        <!-- Tìm kiếm + chế độ xem -->
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="Tìm địa điểm, đường phố..." />
+            <div class="map-type-toggle">
+                <button id="mapTypeRoadmap" class="active">🗺️ Đường</button>
+                <button id="mapTypeSatellite">🛰️ Vệ tinh</button>
+            </div>
+        </div>
+
+        <!-- Bản đồ -->
+        <div id="map">
+            <div class="map-loading" id="mapLoading">
+                <div class="spinner"></div>
+                <p>Đang tải bản đồ...</p>
+            </div>
+        </div>
+
+        <!-- Thông tin -->
+        <div class="info-card">
+            <div class="location-label">
+                <span class="dot"></span>
+                <span id="addressDisplay">Đang tải vị trí...</span>
+            </div>
+            <div class="coords" id="coordsDisplay">21.0285, 105.8542</div>
+        </div>
+
+        <!-- Hành động -->
+        <div class="action-buttons">
+            <button id="currentLocationBtn" class="btn-primary">📍 Vị trí của tôi</button>
+            <button id="searchBtn" class="btn-outline">🔍 Tìm</button>
+            <button id="resetMapBtn" class="btn-outline">↺ Reset</button>
+        </div>
+        <div class="footer-note">
+            Dữ liệu © Google Maps &nbsp;•&nbsp; <a id="mapTypeLink">Chuyển sang Vệ tinh</a>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // BIẾN TOÀN CỤC
+        // ============================================================
+        let map;
+        let marker;
+        let infoWindow;
+        let geocoder;
+        let currentPosition = { lat: 21.0285, lng: 105.8542 };
+        let currentMapType = 'roadmap'; // 'roadmap' hoặc 'satellite'
+
+        // DOM
+        const mapContainer = document.getElementById('map');
+        const addressDisplay = document.getElementById('addressDisplay');
+        const coordsDisplay = document.getElementById('coordsDisplay');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const currentLocationBtn = document.getElementById('currentLocationBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const resetMapBtn = document.getElementById('resetMapBtn');
+        const mapTypeRoadmap = document.getElementById('mapTypeRoadmap');
+        const mapTypeSatellite = document.getElementById('mapTypeSatellite');
+        const mapTypeLink = document.getElementById('mapTypeLink');
+
+        // ============================================================
+        // KHỞI TẠO MAP
+        // ============================================================
+        function initMap() {
+            // Kiểm tra API đã load chưa
+            if (typeof google === 'undefined' || !google.maps) {
+                showMapError('Không thể tải Google Maps API. Vui lòng kiểm tra kết nối.');
+                return;
+            }
+
+            // Ẩn loading
+            const loading = document.getElementById('mapLoading');
+            if (loading) loading.style.display = 'none';
+
+            const defaultLocation = { lat: 21.0285, lng: 105.8542 };
+
+            // Tạo map
+            map = new google.maps.Map(mapContainer, {
+                center: defaultLocation,
+                zoom: 15,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true,
+                zoomControl: false,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                styles: [
+                    { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+                ]
+            });
+
+            geocoder = new google.maps.Geocoder();
+            infoWindow = new google.maps.InfoWindow();
+
+            // Tạo marker
+            marker = new google.maps.Marker({
+                position: defaultLocation,
+                map: map,
+                title: 'Vị trí của bạn',
+                draggable: true,
+                animation: google.maps.Animation.DROP,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: '#1a73e8',
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 3,
+                }
+            });
+
+            // Lấy địa chỉ mặc định
+            updateAddress(defaultLocation);
+
+            // Sự kiện drag marker
+            marker.addListener('dragend', (event) => {
+                const pos = event.latLng;
+                currentPosition = { lat: pos.lat(), lng: pos.lng() };
+                updateAddress(currentPosition);
+                map.panTo(pos);
+            });
+
+            // Click trên map -> di chuyển marker
+            map.addListener('click', (event) => {
+                const clicked = event.latLng;
+                const pos = { lat: clicked.lat(), lng: clicked.lng() };
+                moveMarkerTo(pos);
+                updateAddress(pos);
+                map.panTo(clicked);
+            });
+
+            // Geolocation - lấy vị trí thật
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        currentPosition = pos;
+                        moveMarkerTo(pos);
+                        updateAddress(pos);
+                        map.setCenter(pos);
+                    },
+                    () => {
+                        console.log('Không thể lấy vị trí, dùng mặc định Hà Nội');
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 5000
+                    }
+                );
+            }
+
+            // Cập nhật trạng thái nút chế độ xem
+            updateMapTypeUI('roadmap');
+
+            // Xử lý autocomplete
+            setupAutocomplete();
+
+            console.log('✅ Maps đã sẵn sàng!');
+        }
+
+        // ============================================================
+        // HÀM XỬ LÝ MAP
+        // ============================================================
+
+        // Cập nhật địa chỉ + tọa độ
+        function updateAddress(latLng) {
+            const lat = latLng.lat;
+            const lng = latLng.lng;
+            coordsDisplay.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            currentPosition = { lat, lng };
+
+            if (!geocoder) return;
+
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    addressDisplay.textContent = results[0].formatted_address || 'Địa chỉ không xác định';
+                } else {
+                    addressDisplay.textContent = 'Không tìm thấy địa chỉ';
+                }
+            });
+        }
+
+        // Di chuyển marker
+        function moveMarkerTo(pos) {
+            if (marker) {
+                marker.setPosition(pos);
+                marker.setAnimation(google.maps.Animation.DROP);
+                setTimeout(() => marker.setAnimation(null), 500);
+            }
+            currentPosition = { lat: pos.lat, lng: pos.lng };
+        }
+
+        // Đổi chế độ xem
+        function setMapType(type) {
+            if (!map) return;
+            currentMapType = type;
+            if (type === 'satellite') {
+                map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
+            } else {
+                map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+            }
+            updateMapTypeUI(type);
+        }
+
+        function updateMapTypeUI(type) {
+            mapTypeRoadmap.classList.toggle('active', type === 'roadmap');
+            mapTypeSatellite.classList.toggle('active', type === 'satellite');
+            mapTypeLink.textContent = type === 'roadmap' ? 'Chuyển sang Vệ tinh' : 'Chuyển sang Đường phố';
+        }
+
+        // Toggle chế độ xem
+        function toggleMapType() {
+            const newType = currentMapType === 'roadmap' ? 'satellite' : 'roadmap';
+            setMapType(newType);
+        }
+
+        // ============================================================
+        // TÌM KIẾM
+        // ============================================================
+        function searchLocation(query) {
+            if (!query.trim()) {
+                alert('Vui lòng nhập địa điểm cần tìm.');
+                return;
+            }
+            if (!geocoder) {
+                alert('Geocoder chưa sẵn sàng.');
+                return;
+            }
+
+            geocoder.geocode({ address: query }, (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    const location = results[0].geometry.location;
+                    const pos = { lat: location.lat(), lng: location.lng() };
+                    moveMarkerTo(pos);
+                    map.setCenter(pos);
+                    map.setZoom(16);
+                    updateAddress(pos);
+
+                    infoWindow.setContent(`
+                        <div style="padding: 8px 6px; font-size: 14px; max-width: 240px;">
+                            <strong>📍 ${results[0].formatted_address}</strong>
+                        </div>
+                    `);
+                    infoWindow.open(map, marker);
+                } else {
+                    alert('Không tìm thấy địa điểm: "' + query + '"');
+                }
+            });
+        }
+
+        // ============================================================
+        // AUTOPLACE (gợi ý)
+        // ============================================================
+        function setupAutocomplete() {
+            try {
+                if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+                    const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+                        types: ['geocode', 'establishment'],
+                        componentRestrictions: { country: 'vn' }
+                    });
+                    autocomplete.addListener('place_changed', () => {
+                        const place = autocomplete.getPlace();
+                        if (!place || !place.geometry) return;
+                        const pos = {
+                            lat: place.geometry.location.lat(),
+                            lng: place.geometry.location.lng()
+                        };
+                        moveMarkerTo(pos);
+                        map.setCenter(pos);
+                        map.setZoom(16);
+                        updateAddress(pos);
+                        infoWindow.setContent(`
+                            <div style="padding: 8px 6px; font-size: 14px; max-width: 240px;">
+                                <strong>${place.name || 'Địa điểm'}</strong><br>
+                                ${place.formatted_address || ''}
+                            </div>
+                        `);
+                        infoWindow.open(map, marker);
+                    });
+                }
+            } catch (e) {
+                console.log('Places API không khả dụng');
+            }
+        }
+
+        // ============================================================
+        // VỊ TRÍ HIỆN TẠI
+        // ============================================================
+        function goToCurrentLocation() {
+            if (!navigator.geolocation) {
+                alert('Trình duyệt không hỗ trợ định vị.');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    moveMarkerTo(pos);
+                    map.setCenter(pos);
+                    map.setZoom(16);
+                    updateAddress(pos);
+                },
+                () => {
+                    alert('Không thể lấy vị trí. Vui lòng bật GPS hoặc nhập thủ công.');
+                }, { enableHighAccuracy: true, timeout: 6000 }
+            );
+        }
+
+        // ============================================================
+        // RESET
+        // ============================================================
+        function resetMap() {
+            if (!map) return;
+            const defaultPos = { lat: 21.0285, lng: 105.8542 };
+            map.setCenter(defaultPos);
+            map.setZoom(15);
+            moveMarkerTo(defaultPos);
+            updateAddress(defaultPos);
+            searchInput.value = '';
+            if (infoWindow) infoWindow.close();
+        }
+
+        // ============================================================
+        // HIỂN THỊ LỖI
+        // ============================================================
+        function showMapError(message) {
+            const loading = document.getElementById('mapLoading');
+            if (loading) {
+                loading.innerHTML = `
+                    <div style="font-size:48px; margin-bottom:12px;">⚠️</div>
+                    <h3 style="font-weight:500;">Lỗi tải bản đồ</h3>
+                    <p style="max-width:280px; color:#5f6b7a; margin-top:4px;">${message}</p>
+                    <div class="key-input" style="margin-top:16px;">
+                        <input type="text" id="apiKeyInput" placeholder="Nhập API Key của bạn..." />
+                        <button id="reloadMapBtn">🔄 Tải lại</button>
+                    </div>
+                `;
+                const reloadBtn = document.getElementById('reloadMapBtn');
+                const keyInput = document.getElementById('apiKeyInput');
+                if (reloadBtn) {
+                    reloadBtn.addEventListener('click', () => {
+                        const key = keyInput ? keyInput.value.trim() : '';
+                        if (key) {
+                            // Tải lại trang với key mới
+                            const script = document.createElement('script');
+                            script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&callback=initMap&libraries=places&v=weekly`;
+                            script.async = true;
+                            script.defer = true;
+                            document.head.appendChild(script);
+                            // Ẩn loading
+                            const loadingDiv = document.getElementById('mapLoading');
+                            if (loadingDiv) loadingDiv.innerHTML = '<div class="spinner"></div><p>Đang tải lại...</p>';
+                            // Xóa script cũ
+                            const oldScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+                            if (oldScript) oldScript.remove();
+                        } else {
+                            alert('Vui lòng nhập API Key hợp lệ.');
+                        }
+                    });
+                }
+            }
+        }
+
+        // ============================================================
+        // GÁN SỰ KIỆN
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Tìm kiếm
+            searchBtn.addEventListener('click', () => searchLocation(searchInput.value));
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchLocation(searchInput.value);
+            });
+
+            // Vị trí
+            currentLocationBtn.addEventListener('click', goToCurrentLocation);
+            refreshBtn.addEventListener('click', goToCurrentLocation);
+
+            // Zoom
+            zoomInBtn.addEventListener('click', () => {
+                if (map) map.setZoom(Math.min(map.getZoom() + 1, 20));
+            });
+            zoomOutBtn.addEventListener('click', () => {
+                if (map) map.setZoom(Math.max(map.getZoom() - 1, 2));
+            });
+
+            // Reset
+            resetMapBtn.addEventListener('click', resetMap);
+
+            // Chế độ xem
+            mapTypeRoadmap.addEventListener('click', () => setMapType('roadmap'));
+            mapTypeSatellite.addEventListener('click', () => setMapType('satellite'));
+            mapTypeLink.addEventListener('click', toggleMapType);
+
+            // Fallback nếu API không load sau 5s
+            setTimeout(() => {
+                if (typeof google === 'undefined' || !google.maps) {
+                    showMapError('Google Maps API không tải được. Vui lòng nhập API Key của bạn.');
+                }
+            }, 5000);
+        });
+
+        // Hàm callback cho API
+        window.initMap = initMap;
+
+        console.log('🚀 Ứng dụng Maps đã khởi động!');
+    </script>
+</body>
+  </html>
